@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+var ErrInvalidBitmapArray = errors.New("invalid iso8583 bitmap array")
+
 // BitMapArrayToHex converts a iso8583 bit array into a hex string
 func BitMapArrayToHex(arr []int64) (string, error) {
 	length := len(arr)
@@ -32,11 +34,11 @@ func BitMapArrayToHex(arr []int64) (string, error) {
 	m[15] = "f"
 
 	if (length % 4) != 0 {
-		return "", errors.New("invalid iso8583 bitmap array")
+		return "", ErrInvalidBitmapArray
 	}
 
 	if ((length / 4) % 2) != 0 {
-		return "", errors.New("invalid iso8583 bitmap array")
+		return "", ErrInvalidBitmapArray
 	}
 	var hexString string
 	var buf float64

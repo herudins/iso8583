@@ -2,8 +2,13 @@ package iso8583
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strconv"
+)
+
+var (
+	ErrElementNotFound = errors.New("element not found")
 )
 
 // MtiType is the message type identifier type
@@ -26,6 +31,16 @@ func (e *ElementsType) GetElements() map[int64]string {
 	return e.elements
 }
 
+// GetElement returns the available elemt as a string
+func (e *ElementsType) GetElement(field int64) (string, error) {
+	data, ok := e.elements[field]
+	if !ok {
+		return "", ErrElementNotFound
+	}
+
+	return data, nil
+}
+
 // IsoStruct is an iso8583 container
 type IsoStruct struct {
 	Spec     Spec
@@ -42,10 +57,12 @@ func (iso *IsoStruct) ToString() (string, error) {
 	if err != nil {
 		return str, err
 	}
+
 	elementsStr, err := iso.packElements()
 	if err != nil {
 		return str, err
 	}
+
 	str = iso.Mti.String() + bitmapString + elementsStr
 	return str, nil
 }
@@ -110,6 +127,12 @@ func (iso *IsoStruct) packElements() (string, error) {
 			field := int64(index + 1)
 			fieldDescription := elementsSpec.fields[int(field)]
 			if fieldDescription.LenType == "fixed" {
+				if fieldDescription.ContentType == "n" {
+					elementsMap[field] = leftPad(elementsMap[field], fieldDescription.MaxLen, "0")
+				} else {
+					elementsMap[field] = rightPad(elementsMap[field], fieldDescription.MaxLen, " ")
+				}
+
 				str = str + elementsMap[field]
 			} else {
 				lengthType, err := getVariableLengthFromString(fieldDescription.LenType)
@@ -238,8 +261,7 @@ func unpackElements(bitmap []int64, elements string, spec Spec) (ElementsType, e
 
 // NewISOStruct creates a new IsoStruct
 // based on the content of the specfile provided
-func NewISOStruct(filename string, secondaryBitmap bool) IsoStruct {
-	var iso IsoStruct
+func NewISOStruct(filename string, secondaryBitmap bool) (iso IsoStruct, err error) {
 	var bitmap []int64
 	mti := MtiType{mti: ""}
 
@@ -254,8 +276,9 @@ func NewISOStruct(filename string, secondaryBitmap bool) IsoStruct {
 	elements := ElementsType{elements: emap}
 	spec, err := SpecFromFile(filename)
 	if err != nil {
-		panic(err) // we panic because we don't want to do anything without a valid specfile
+		return iso, err
 	}
+
 	iso = IsoStruct{Spec: spec, Mti: mti, Bitmap: bitmap, Elements: elements}
-	return iso
+	return iso, nil
 }

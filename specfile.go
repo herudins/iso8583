@@ -32,6 +32,16 @@ func (s *Spec) readFromFile(filename string) error {
 	return nil
 }
 
+// GetSpec return all information fields
+func (s *Spec) GetSpecs() map[int]FieldDescription {
+	return s.fields
+}
+
+// GetSpec return spesific information field
+func (s *Spec) GetSpec(field int) FieldDescription {
+	return s.fields[field]
+}
+
 // SpecFromFile returns a brand new empty spec
 func SpecFromFile(filename string) (Spec, error) {
 	s := Spec{}
